@@ -7,12 +7,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Passport\HasApiTokens;
+use Tymon\JWTAuth\Contracts\JWTSubject;
 
 
-class User extends Authenticatable
+class User extends Authenticatable  implements JWTSubject, MustVerifyEmail
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -25,9 +25,16 @@ class User extends Authenticatable
         'password',
         'telephone',
         'adresse',
+        'code_postale',
+        'ville',
         'role',
         'wantToAddHabitat',
         'canAddHabitat',
+        'google_id',
+        'facebook_id',
+        'complement_adresse',
+        'password2'
+
     ];
 
     /**
@@ -43,7 +50,10 @@ class User extends Authenticatable
         'email_verified_at',
         'role',
         'siren',
-        'nomEntreprise'
+        'nomEntreprise',
+        'password2',
+        'google_id',
+        'facebook_id',
     ];
 
     /**
@@ -61,7 +71,7 @@ class User extends Authenticatable
      * Permet de récupérer tous les habitats ajoutés par un utilisateur
      */
     public function getHabitats(){
-        return $this->hasMany('App\Models\Habitat', 'proprietaire');
+        return $this->hasMany('App\Models\Habitat', 'proprietaire')->orderBy('created_at','desc');
     }
 
     /**
@@ -70,6 +80,15 @@ class User extends Authenticatable
      * Permet de récuprérer toutes les réservations effectuées par un utilisateurs
      */
     public function getReservations(){
-        return $this->hasMany('App\Models\Reservation','locataire');
+        return $this->hasMany('App\Models\Reservation','locataire')->orderBy('created_at','desc');
     }
+
+    public function getJWTIdentifier() {
+        return $this->getKey();
+    }
+
+    public function getJWTCustomClaims() {
+        return [];
+    }
+
 }

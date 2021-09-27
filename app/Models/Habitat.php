@@ -18,7 +18,6 @@ class Habitat extends Model
         'hasInternet', 'valideParAtypik', 'proprietaire', 'typeHabitat'];
 
     protected $hidden = [
-        'created_at',
         'updated_at',
         'deleted_at'
     ];

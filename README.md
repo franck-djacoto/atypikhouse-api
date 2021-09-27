@@ -34,7 +34,7 @@ Commande Laravel à exécuter à la récupération du projet
 2. `php artisan key:generate` : Génère une clé pour le projet actuel
 3. `php artisan migrate` : pour créer les tables dans la bd (configuez la bd dans le fichier **.env** au préalable) 
 4. `php artisan db:seed` pour générer la création du compte admin (les identifiants sont présents dans le fichier .env) et la création d'un type habitat par défaut. 
-5. `php artisan passport:install` pour générer les **CLIENT CREDENTIALS** utilisé pour l'API
+5. `php artisan php artisan jwt:secret` pour générer la clé secrète permettant d'encrypter le token généré par Jwt
 ***
 
 Lancer le projet en local  :

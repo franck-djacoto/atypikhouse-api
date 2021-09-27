@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\AuthorizedToAddHabitaNotif;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Notifications\UserCanNowAddHabitat;
@@ -26,6 +27,7 @@ class ManageUsersController extends Controller
 
             if( $isSaved ){
                 $user->notify( new UserCanNowAddHabitat());
+                event(new AuthorizedToAddHabitaNotif(true,$user->id));
                 return back()->with([
                     "successNotification" => "Vous avez autorisé ".$user->name." à ajouter des habitats !"
                 ]);

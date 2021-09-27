@@ -8,11 +8,13 @@ use App\Models\ProprieteTypeHabitat;
 use App\Models\ProprieteTypeHabitatValue;
 use App\Models\TypeHabitat;
 use App\Models\Vue;
+use http\Env\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\Habitat as HabitatResource;
+use function MongoDB\BSON\toJSON;
 
 class HabitatController extends Controller
 {
@@ -50,14 +52,32 @@ class HabitatController extends Controller
         }
         //@TODO addd habitats comments
         return response()->json([
-            'success' => 'Informations de l\'habitat',
             'habitat' => new HabitatResource($habitat)
         ], 200);
     }
 
+    /**
+     * @param $habitat_id int
+     * Retourne les des détails d'un habitat d'un utilisateur
+     */
+    public function getMyHabitatDetails($habitat_id)
+    {
+        $habitat = Habitat::find($habitat_id);
+
+        if (empty($habitat)) {
+            return response()->json([
+                'serverError' => 'Aucun habitat trouvé'
+            ], 404);
+        }
+        //@TODO addd habitats comments
+        return response()->json([
+            'habitat' => new HabitatResource($habitat)
+        ], 200);
+    }
+
+
     public function addHabitat(Request $request)
     {
-
         //on vérifie si l'utilisateur
         //authentifié est autorisé à ajouter un habitats
         if (Auth::user()->canAddHabitat != 1) {
@@ -82,6 +102,8 @@ class HabitatController extends Controller
             'vues' => 'required',
             'vues.*' => 'image|mimes:jpeg,jpg,png'
         ]);
+
+
 
         if ($validation->fails()) {
             return response()->json([
@@ -136,10 +158,6 @@ class HabitatController extends Controller
      * @param Request $request
      * @param $habitat_id
      * Nb : Ceci ne modifie que les informations
-     * Textuelle d'un habit mais pas les images
-     * Pour modifier les images d'un habitats,
-     * consulter la function upadateHabitatVues() du controller VueController
-     *
      * NB : seul le propriétaire est autorisé à modifier
      * un habitat
      *
@@ -162,17 +180,18 @@ class HabitatController extends Controller
         } else {
 
             $validation = Validator::make($request->all(), [
-                'title' => 'required|string',
-                'description' => 'required|string',
-                'nombreChambre' => 'required|integer|min:1',
-                'prixParNuit' => 'required|numeric',
-                'nombreLit' => 'required|integer|min:1',
-                'adresse' => 'string|required',
-                'hasTelevision' => 'required|in:0,1', //utiliser des radios button "oui"=>1, "non"=>0
-                'hasClimatiseur' => 'required|in:0,1',
-                'hasChauffage' => 'required|in:0,1',
-                'hasInternet' => 'required|in:0,1',
-                'typeHabitat' => 'required|integer|min:1',
+                'title' => 'string',
+                'description' => 'string',
+                'nombreChambre' => 'integer|min:1',
+                'prixParNuit' => 'numeric',
+                'nombreLit' => 'integer|min:1',
+                'adresse' => 'string',
+                'hasTelevision' => 'in:0,1', //utiliser des radios button "oui"=>1, "non"=>0
+                'hasClimatiseur' => 'in:0,1',
+                'hasChauffage' => 'in:0,1',
+                'hasInternet' => 'in:0,1',
+                'typeHabitat' => 'integer|min:1',
+                'vues.*' => 'image|mimes:jpeg,jpg,png'
             ]);
 
             if ($validation->fails()) {
@@ -191,6 +210,21 @@ class HabitatController extends Controller
                 ], 400);
             }
 
+            //enregisterement des images dans la table Vues
+            if ($request->hasFile('vues')) {
+                foreach ($request->file('vues') as $file) {
+                    $name = date('d-m-Y') . '-' . $file->getClientOriginalName(); //nom du fichier
+                    $lienImage = $file->storeAs('vues', $name);
+                    $vue = Vue::create([
+                        'lienImage' => $lienImage,
+                        'habitat' => $habitat->id
+                    ]);
+
+                    if (empty($vue)) {
+                        Log::alert('Image non enregistrée en bd pour l\'habitat : ' . $habitat->id);
+                    }
+                }
+            }
 
             $habitat->title = $request->title;
             $habitat->description = $request->description;
@@ -208,7 +242,7 @@ class HabitatController extends Controller
             if ($isSaved) { // si l'habitat est bien enregisté en bd
                 return response()->json([
                     'success' => 'habitat modifié avec succès !',
-                    'habitat' => $request->except('vues')
+                    'habitat' => new HabitatResource ( Habitat::find($habitat_id) )
                 ], 200);
             } else {
 
@@ -261,12 +295,11 @@ class HabitatController extends Controller
         $habitats = Auth::user()->getHabitats;
         if ($habitats->count() == 0) {
             return response()->json([
-                'serverError' => 'Aucun habitat trouvé'
-            ], 404);
+                'serverMessage' => 'Aucun habitat trouvé'
+            ], 200);
         }
 
         return response()->json([
-            'success' => 'vos habitats',
             'habitats' => HabitatResource::collection($habitats)
         ], 200);
     }
@@ -346,6 +379,49 @@ class HabitatController extends Controller
             return response()->json([
                 'success' => 'La proprité a été bien rajouté à l\'habitat'
             ], 200);
+        }
+    }
+
+    /**
+     * supprime la vue d'un habitat
+     */
+    public  function deleteHabitatVue($idVue, $idHabitat ){
+        $habitat = Habitat::find($idHabitat);
+        if( empty($habitat) ) {
+            return response()->json([
+                'serverError' => 'Impossible de supprimer l\'image :  Habitat inexistant'
+            ], 400);
+        } else if ( count($habitat->getVues) <= 1 ) {
+            return response()->json([
+                'serverError' => 'Impossible de supprimer l\'image : Votre habitat doit avoir au moins une image'
+            ], 400);
+        } else {
+            $vue = Vue::find($idVue);
+            if( empty($vue) ){
+                return response()->json([
+                    'serverError' => 'Vue inexistant',
+                    400
+                ]);
+            } else {
+                if( $vue->habitat === $habitat->id ){
+                    $isDeleted =  $vue->delete();
+                    if($isDeleted){
+                        return response()->json([
+                            'success' => 'Image supprimée',
+                            'vues' => Habitat::find($vue->habitat)->getVues,
+                            200
+                        ]);
+                    } else {
+                        return  response()->json([
+                            'serverError' => 'Erreur Interne lors de la suppression de l\'image :  Veuillez réessayer'
+                        ], 500);
+                    }
+                } else {
+                    return response()->json([
+                        'serverError' => 'Vue ou habitat inexistant'
+                    ], 400);
+                }
+            }
         }
     }
 }

@@ -45,7 +45,8 @@ class UserController extends Controller
 
                 if ($isSaved) {
                     return response()->json([
-                        'success' => 'Votre demande a été prise en compte. Vous recevrez un mail lors de la validation de votre profil ',
+                        'success' => 'Votre demande a été prise en compte. Vous recevrez un mail lors de la validation de votre profil dans un délais de 48h. Si vous n\'avez aucun retour passé ce délais
+                        veuillez contacter AtypikHouse',
                     ], 200);
 
                 } else {

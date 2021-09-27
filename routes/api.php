@@ -22,8 +22,12 @@ use App\Http\Controllers\Api\CommentairesController;
 Route::middleware('cors')->group(function(){
     Route::post('/register', [AuthController::class,'register']); //@Todo secure with client credentials
     Route::post('/login', [AuthController::class,'login']);
+    Route::post('/logout', [AuthController::class,'logout']);
     Route::get('email/verify/{id}', [VerificationController::class,'verify'])->name('verification.verify');
     Route::get('email/resend', [VerificationController::class,'resend'])->name('verification.resend');
+    Route::post('/register_with_socialite', [AuthController::class, 'registerWithSocialite']);
+    Route::post('/login_with_socialite', [AuthController::class, 'loginWithSocialite']);
+    Route::post('/forget_password', [AuthController::class, 'forget_password']);
 
 
     Route::prefix('habitats')->group(function(){
@@ -33,12 +37,14 @@ Route::middleware('cors')->group(function(){
     });
 });
 
-Route::middleware(['auth:api','cors'])->group( function(){
+Route::middleware(['auth:api','cors', 'verified', 'jwt.verify'])->group( function(){
     Route::prefix('habitats')->group( function(){
         Route::post('add', [HabitatController::class,'addHabitat'])->name('addHabitat');
         Route::post('update/{habitat_id}', [HabitatController::class,'updateHabitat'])->name('updateHabitat');
         Route::get('delete/{habitat_id}', [HabitatController::class,'deleteHabitat'])->name('deleteHabitat');
+        Route::get('usersHabitats', [HabitatController::class,'getUserHabitat'])->name('getUserHabitat');
         Route::post('addNewPropriete/{idHabitat}', [HabitatController::class,'addNewPropriete'])->name('addNewPropriete');
+        Route::get('vues/delete/{idVue}-{idHabitat}', [HabitatController::class,'deleteHabitatVue'])->name('deleteHabitatVue');
 
         Route::prefix('reservations')->group(function(){
             Route::post('add/{idHabitat}', [ReservationController::class,'addReservation'])->name('addReservation');
@@ -53,6 +59,9 @@ Route::middleware(['auth:api','cors'])->group( function(){
         Route::get('usersHabitats', [HabitatController::class,'getUserHabitat'])->name('getUserHabitat');
         Route::post('askAuthorizationToAddHabitat', [UserController::class,'askAuthorizationToAddHabitat'])->name('askAuthorizationToAddHabitat');
         Route::post('updateProfil/{idUser}', [UserController::class,'updateProfil'])->name('updateProfil');
+        Route::get('getMyHabitatDetails/{habitat_id}',[HabitatController::class, 'getMyHabitatDetails'])->name('getMyHabitatDetails');
+        Route::get('/delete-account/{idUser}', [AuthController::class, 'deleteAccount'])->where('idUser',  '[0-9]+')->name('deleteAccount');
+
     });
 
 });

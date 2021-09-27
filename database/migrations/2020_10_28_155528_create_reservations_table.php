@@ -20,6 +20,7 @@ class CreateReservationsTable extends Migration
             $table->json('detail_habitat');//les informations de l'habitat peuvent être modifiée dont on sauvagarde les informations actuelle
             $table->unsignedInteger('nbrOccupant');
             $table->unsignedFloat('montantTotal');
+            $table->enum("statut", [env("RESERV_STATUT_ATTENTE"), env("RESERV_STATUT_APPROUVE")]);
             $table->boolean('payementEffectue')->default(0);// payé => 1, pas payé =>0
             $table->string('lienfacture')->nullable();
             $table->date('dateArrivee');

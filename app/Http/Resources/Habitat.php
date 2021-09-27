@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use Carbon\Carbon;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\ProprieteTypeHabitatValueResource;
 class Habitat extends JsonResource
@@ -27,11 +28,13 @@ class Habitat extends JsonResource
             'hasClimatiseur'=>$this->hasClimatiseur,
             'hasChauffage'=>$this->hasChauffage,
             'hasInternet'=>$this->hasInternet,
+            'valideParAtypik'=>$this->valideParAtypik,
+            'created_at'=>Carbon::parse($this->created_at)->format("d/m/Y"),
             'proprietaire'=>$this->getProprietaire,
             'typeHabitat'=>$this->getType->libelle,
             'proprietes'=> ProprieteTypeHabitatValueResource::collection($this->proprieteTypeHabitatValues),
-          /*  'proprietes' => $this->when(count( $this->proprieteTypeHabitatValues ),
-                                        ProprieteTypeHabitatValueResource::collection($this->proprieteTypeHabitatValues)),*/
+            /*  'proprietes' => $this->when(count( $this->proprieteTypeHabitatValues ),
+                                          ProprieteTypeHabitatValueResource::collection($this->proprieteTypeHabitatValues)),*/
 
             'vues'=>$this->getVues
         ];
